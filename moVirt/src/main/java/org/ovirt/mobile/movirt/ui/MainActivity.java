@@ -50,7 +50,7 @@ import org.ovirt.mobile.movirt.ui.dashboard.DashboardActivity_;
 import org.ovirt.mobile.movirt.ui.dialogs.AccountDialogFragment;
 import org.ovirt.mobile.movirt.ui.events.EventsFragment_;
 import org.ovirt.mobile.movirt.ui.hosts.HostsFragment_;
-import org.ovirt.mobile.movirt.ui.listfragment.BaseEntityListFragment;
+import org.ovirt.mobile.movirt.ui.listfragment.BaseListFragment;
 import org.ovirt.mobile.movirt.ui.storage.StorageDomainFragment_;
 import org.ovirt.mobile.movirt.ui.triggers.EditTriggersActivity;
 import org.ovirt.mobile.movirt.ui.triggers.EditTriggersActivity_;
@@ -303,7 +303,7 @@ public class MainActivity extends MovirtActivity {
 
     /**
      * Displays fragment based on intent's action
-     * Sets ordering for BaseEntityListFragment based on intent's extras
+     * Sets ordering for BaseListFragment based on intent's extras
      *
      * @param intent intent
      */
@@ -317,7 +317,7 @@ public class MainActivity extends MovirtActivity {
 
         Bundle extras = intent.getExtras();
 
-        // sets ordering for BaseEntityListFragment
+        // sets ordering for BaseListFragment
         if (extras != null) {
             MainActivityFragments fragmentPosition = (MainActivityFragments) extras.getSerializable(Extras.FRAGMENT.name());
             String orderBy = extras.getString(Extras.ORDER_BY.name());
@@ -326,9 +326,9 @@ public class MainActivity extends MovirtActivity {
             if (fragmentPosition != null && order != null && !StringUtils.isEmpty(orderBy)) {
                 Fragment fragment = getSupportFragmentManager().getFragments().get(fragmentPosition.ordinal());
 
-                if (fragment != null && fragment instanceof BaseEntityListFragment && !fragment.isDetached()) {
-                    BaseEntityListFragment baseEntityListFragment = (BaseEntityListFragment) fragment;
-                    baseEntityListFragment.setOrderingSpinners(orderBy, order);
+                if (fragment != null && fragment instanceof BaseListFragment && !fragment.isDetached()) {
+                    BaseListFragment baseListFragment = (BaseListFragment) fragment;
+                    baseListFragment.setOrderingSpinners(orderBy, order);
                 }
             }
         }
