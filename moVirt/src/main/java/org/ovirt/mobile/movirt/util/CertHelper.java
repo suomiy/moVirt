@@ -1,5 +1,6 @@
 package org.ovirt.mobile.movirt.util;
 
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -23,6 +24,8 @@ import org.spongycastle.cert.jcajce.JcaX509CertificateHolder;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -57,6 +60,65 @@ public class CertHelper {
     @Background
     public void deleteAllCertsInBackground() {
         deleteAllCerts();
+    }
+
+    /**
+     * @param uri           file uri
+     * @param startNewChain if true deletes old certificates before starting new chain, otherwise appends to the chain
+     */
+    public void importFromFileAndStoreCert(@NonNull Uri uri, boolean startNewChain) {
+        CertificateFactory cf = CertHelper.getX509CertificateFactory();
+
+        InputStream caInput = null;
+        ByteArrayOutputStream caOutput = null;
+
+        try {
+            caInput = new BufferedInputStream(new FileInputStream(uri.getPath()));
+
+            caOutput = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = caInput.read(buffer, 0, buffer.length)) != -1) {
+                caOutput.write(buffer, 0, len);
+            }
+            caOutput.flush();
+
+            caInput = new ByteArrayInputStream(caOutput.toByteArray());
+        } catch (IOException e) {
+            ObjectUtils.closeSilently(caInput, caOutput);
+            throw new IllegalStateException("Error loading certificate: " + e.getMessage());
+        }
+        List<Cert> certs;
+        try {
+            certs = startNewChain ? new ArrayList<Cert>(1) : new ArrayList<>(Arrays.asList(propertiesManager.getCertificateChain()));
+            Certificate issuer = cf.generateCertificate(caInput);
+            if (!startNewChain) {
+                Certificate lastInChain = certs.get(certs.size() - 1).asCertificate();
+                lastInChain.verify(issuer.getPublicKey());
+            }
+            Cert cert = Cert.fromCertificate(issuer);
+            cert.setLocation(url.toString());
+            cert.setLocationType(Cert.LOCATION_TYPE.NETWORK);
+            certs.add(cert);
+        } catch (CertificateException e) {
+            throw new IllegalStateException("Error parsing certificate: " + e.getMessage());
+        } catch (Exception e) {
+            throw new IllegalStateException("New certificate doesn't sign last certificate in the chain: " + e.getMessage());
+        } finally {
+            ObjectUtils.closeSilently(caInput, caOutput);
+        }
+
+        try {
+            propertiesManager.setCertificateChain(certs.toArray(new Cert[certs.size()]), OnThread.BACKGROUND);
+            if (startNewChain) {
+                propertiesManager.setValidHostnameList(new String[]{validHostname.getHost()}, OnThread.BACKGROUND);
+            }
+        } catch (Exception e) {
+            deleteAllCertsInBackground(); // hostname and ca must be atomic
+            throw new IllegalStateException("Error storing certificate: " + e.getMessage());
+        } finally {
+            ObjectUtils.closeSilently(caInput, caOutput);
+        }
     }
 
     /**

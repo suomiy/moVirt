@@ -4,9 +4,11 @@ import android.app.DialogFragment;
 import android.app.FragmentTransaction;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.app.ActionBarActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -49,6 +51,7 @@ import org.ovirt.mobile.movirt.util.message.CreateDialogBroadcastReceiverHelper;
 import org.ovirt.mobile.movirt.util.message.ErrorType;
 import org.ovirt.mobile.movirt.util.message.MessageHelper;
 
+import java.io.File;
 import java.net.URL;
 import java.security.cert.Certificate;
 
@@ -66,6 +69,8 @@ public class AdvancedAuthenticatorActivity extends ActionBarActivity
     private static final int NORMAL_DELETE_DIALOG = 0;
     private static final int CUSTOM_SWITCH_DELETE_DIALOG = 1;
     private static final int MAX_VISIBLE_CERTIFICATES = 10;
+
+    private static final int FILE_CHOOSER_CODE = 0;
 
     public final static String LOAD_CA_FROM = APP_PACKAGE_DOT + "ui.LOAD_CA_FROM";
 
@@ -95,6 +100,9 @@ public class AdvancedAuthenticatorActivity extends ActionBarActivity
 
     @ViewById
     Button btnLoad;
+
+    @ViewById
+    Button btnLoadFromFile;
 
     @ViewById
     ProgressBar progress;
@@ -161,12 +169,25 @@ public class AdvancedAuthenticatorActivity extends ActionBarActivity
 
     @Click(R.id.btnLoad)
     void btnDownLoad() {
+        loadCommon(false);
+    }
+
+    @Click(R.id.btnLoadFromFile)
+    void btnImportFromFile() {
+        loadCommon(true);
+    }
+
+    private void loadCommon(boolean fromFile) {
         try {
             if (propertiesManager.isCustomCertificateLocation()) {
                 Cert[] certs = propertiesManager.getCertificateChain();
 
                 if (certs.length == 0) {
-                    downloadCustomCa(null, true);
+                    if (fromFile) {
+                        showFileChooser();
+                    } else {
+                        downloadCustomCa(null, true);
+                    }
                 } else {
                     assertCaIncluded(certs);
                 }
@@ -176,6 +197,34 @@ public class AdvancedAuthenticatorActivity extends ActionBarActivity
         } catch (IllegalArgumentException parseError) {
             messageHelper.showError(ErrorType.USER, parseError.getMessage(), getString(R.string.wrong_url_in_connection_settings));
         }
+    }
+
+    private void showFileChooser() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("*/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+        try {
+            startActivityForResult(Intent.createChooser(intent, "Select a certificate."), FILE_CHOOSER_CODE);
+        } catch (android.content.ActivityNotFoundException ex) {
+            messageHelper.showToast("Please install a File Manager.");
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case FILE_CHOOSER_CODE:
+                if (resultCode == RESULT_OK) {
+                    Uri uri = data.getData();
+                    File file = new File(uri.getPath());
+
+                    Log.d(TAG, "File Uri: " + uri.toString());
+                    Log.d(TAG, "File Path: " + uri.getPath());
+                }
+                break;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     @Override
@@ -352,6 +401,8 @@ public class AdvancedAuthenticatorActivity extends ActionBarActivity
 
         btnLoad.setVisibility(visible ? View.VISIBLE : View.GONE);
         btnLoad.setText(isCustomCert && hasCerts ? R.string.download_issuer : R.string.download);
+        btnLoadFromFile.setVisibility(isCustomCert && !isCA ? View.VISIBLE : View.GONE);
+        btnLoadFromFile.setText(isCustomCert && hasCerts ? R.string.import_issuer_from_file : R.string.import_from_file);
     }
 
     private void setHasCertsVisibility(boolean hasCerts) {

@@ -47,8 +47,6 @@
     <string name="save">Save</string>
     <string name="save_acc">Save Account</string>
     <string name="done_advanced_settings">Done</string>
-    <string name="delete_stored_cert">Delete</string>
-    <string name="load_cert_from_addr">Download</string>
     <string name="certificate_management">Certificate Management</string>
     <string name="trigger_scope">Editing triggers for: </string>
     <string name="add_trigger">Add Trigger</string>
@@ -123,7 +121,7 @@
     <string name="advanced_authenticator_error_max_visible_certs_reached">Maximum of %1$d visible certificates is supported. Showing only %1$d bottom certificates of the hierarchy.</string>
     <string name="advanced_authenticator_custom">Custom</string>
     <string name="advanced_authenticator_engine">Engine</string>
-    <string name="advanced_authenticator_custom_url">Custom URL</string>
+    <string name="advanced_authenticator_custom_url">Custom Certificate</string>
 
     <string name="message_detailed_info">%1$s\n\nDetailed info:\n %2$s</string>
 
@@ -271,6 +269,8 @@
     <string name="cert_dialog_issuer_reason">Last certificate in the chain isn\'t Certificate Authority. The issuer of this certificate is required.</string>
     <string name="download">Download</string>
     <string name="download_issuer">Download Issuer</string>
+    <string name="import_from_file">Import File</string>
+    <string name="import_issuer_from_file">Import Issuer File</string>
     <string name="wrong_url_in_connection_settings">Wrong API URL in Connection Settings!</string>
     <string name="deleted_cert_chain">Deleted Certificate Chain</string>
     <string name="api_url_not_valid">API URL must be valid!</string>

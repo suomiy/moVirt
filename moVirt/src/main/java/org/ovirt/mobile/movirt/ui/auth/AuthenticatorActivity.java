@@ -35,6 +35,7 @@ import org.ovirt.mobile.movirt.auth.properties.AccountProperty;
 import org.ovirt.mobile.movirt.auth.properties.PropertyChangedListener;
 import org.ovirt.mobile.movirt.auth.properties.manager.AccountPropertiesManager;
 import org.ovirt.mobile.movirt.auth.properties.manager.OnThread;
+import org.ovirt.mobile.movirt.auth.properties.property.CertHandlingStrategy;
 import org.ovirt.mobile.movirt.provider.OVirtContract;
 import org.ovirt.mobile.movirt.provider.ProviderFacade;
 import org.ovirt.mobile.movirt.rest.client.LoginClient;
@@ -119,6 +120,11 @@ public class AuthenticatorActivity extends AccountAuthenticatorActivity implemen
                 messageHelper.showToast("Added new account.");
             }
         }
+
+        propertiesManager.setApiUrl("https://10.34.63.141/ovirt-engine/api");
+        propertiesManager.setUsername("admin@internal");
+        propertiesManager.setPassword("123456");
+        propertiesManager.setCertHandlingStrategy(CertHandlingStrategy.TRUST_ALL);
 
         txtEndpoint.setText(propertiesManager.getApiUrl());
         ArrayAdapter<String> urlAdapter = new ArrayAdapter<>(this,
