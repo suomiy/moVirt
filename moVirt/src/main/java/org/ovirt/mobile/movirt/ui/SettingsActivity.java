@@ -117,7 +117,6 @@ public class SettingsActivity extends BroadcastAwareAppCompatActivity {
             PreferenceManager prefMgr = getPreferenceManager();
             prefMgr.setSharedPreferencesName(account.getId() + Constants.PREFERENCES_NAME_SUFFIX);
             prefMgr.setSharedPreferencesMode(MODE_PRIVATE);
-            toggleVisibility();
 
             addPreferencesFromResource(R.xml.preferences);
             disposables.add(rxStore.onRemovedAccountObservable(account)
@@ -148,7 +147,11 @@ public class SettingsActivity extends BroadcastAwareAppCompatActivity {
                 periodicSync.setEnabled(enabled);
                 maxEventsPolled.setEnabled(enabled);
                 maxEventsStored.setEnabled(enabled);
-                eventsSearchQuery.setEnabled(enabled);
+                try {
+                    boolean eventSearchQueryEnabled = environmentStore.getAccountPropertiesManager(account).hasAdminPermissions() && enabled;
+                    eventsSearchQuery.setEnabled(eventSearchQueryEnabled);
+                } catch (AccountDeletedException ignore) {
+                }
                 maxVmsPolled.setEnabled(enabled);
                 vmsSearchQuery.setEnabled(enabled);
             }
@@ -224,12 +227,12 @@ public class SettingsActivity extends BroadcastAwareAppCompatActivity {
             setMaxVmsSummary();
             setMaxEventsPolledSummary();
             setMaxEventsStoredSummary();
-            toggleVisibility();
         }
 
         @Override
         public void onResume() {
             super.onResume();
+            toggleVisibility();
             checkPeriodicSyncStatusState();
 
             getPreferenceScreen().getSharedPreferences()

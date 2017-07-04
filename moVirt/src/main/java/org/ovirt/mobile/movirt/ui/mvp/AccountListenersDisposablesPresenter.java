@@ -24,6 +24,15 @@ public abstract class AccountListenersDisposablesPresenter<P extends AccountList
         return listeners;
     }
 
+    public void notifyAndRegisterListener(PropertyChangedListener listener) {
+        try {
+            final AccountPropertiesManager accountPropertiesManager = envStore.getAccountPropertiesManager(getAccount());
+            listeners.add(listener);
+            accountPropertiesManager.notifyAndRegisterListener(listener);
+        } catch (AccountDeletedException ignore) {
+        }
+    }
+
     @Override
     public void destroy() {
         super.destroy();

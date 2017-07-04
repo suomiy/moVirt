@@ -10,6 +10,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.MultiAutoCompleteTextView;
@@ -54,6 +55,9 @@ public class ConnectionSettingsActivity extends PresenterBroadcastAwareActivity 
 
     @ViewById
     ImageView passwordVisibility;
+
+    @ViewById
+    CheckBox chkAdminPrivilege;
 
     @ViewById
     ProgressBar authProgress;
@@ -128,7 +132,7 @@ public class ConnectionSettingsActivity extends PresenterBroadcastAwareActivity 
                     txtEndpoint.getText().toString(),
                     txtUsername.getText().toString(),
                     txtPassword.getText().toString(),
-                    true); // admin only now
+                    chkAdminPrivilege.isChecked());
             presenter.sanitizeAndCheckLoginInfo(loginInfo);
             presenter.login(loginInfo); // background call
         } catch (SmallMistakeException e) {
@@ -147,6 +151,11 @@ public class ConnectionSettingsActivity extends PresenterBroadcastAwareActivity 
                 R.drawable.ic_visibility_off_white_24dp);
         txtPassword.setInputType(visibility ? InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD :
                 InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+    }
+
+    @Override
+    public void displayAdminPermission(boolean hasAdminPermissions) {
+        chkAdminPrivilege.setChecked(hasAdminPermissions);
     }
 
     @Override

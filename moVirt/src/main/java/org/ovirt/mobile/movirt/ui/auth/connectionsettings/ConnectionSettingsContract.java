@@ -23,6 +23,8 @@ public interface ConnectionSettingsContract {
         void showLoginInProgress(boolean loginInProgress);
 
         void startCertificateManagementActivity(MovirtAccount account, String apiUrl);
+
+        void displayAdminPermission(boolean hasAdminPermissions);
     }
 
     interface Presenter extends AccountPresenter {

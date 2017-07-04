@@ -493,7 +493,7 @@ public class OVirtClient implements AccountEnvironment.EnvDisposable {
             public List<Vm> fire() {
                 RestEntityWrapperList<? extends org.ovirt.mobile.movirt.rest.dto.Vm> vms;
 
-                if (propertiesManager.hasAdminPermissions()) {
+                if (propertiesManager.hasAdminPermissions() || VersionSupport.USER_ROLE.isSupported(propertiesManager.getApiVersion())) {
                     int maxVms = sharedPreferencesHelper.getMaxVms();
                     String query = sharedPreferencesHelper.getStringPref(SettingsKey.VMS_SEARCH_QUERY);
                     if (StringUtils.isEmpty(query)) {
@@ -595,13 +595,14 @@ public class OVirtClient implements AccountEnvironment.EnvDisposable {
                 Events loadedEvents;
 
                 if (propertiesManager.hasAdminPermissions()) {
-
                     String query = sharedPreferencesHelper.getStringPref(SettingsKey.EVENTS_SEARCH_QUERY);
                     if (!"".equals(query)) {
                         loadedEvents = restClient.getEventsSince(lastStrEventId, query, maxEventsPolled);
                     } else {
                         loadedEvents = restClient.getEventsSince(lastStrEventId, maxEventsPolled);
                     }
+                } else if (VersionSupport.USER_ROLE.isSupported(propertiesManager.getApiVersion())) {
+                    loadedEvents = restClient.getEventsUserRole(maxEventsPolled);
                 } else {
                     loadedEvents = restClient.getEventsSince(lastStrEventId, -1);
 

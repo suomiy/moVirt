@@ -71,6 +71,9 @@ public interface OVirtRestClient extends RestClientRootUrl, RestClientHeaders, R
     @Get("/events;max={maxToLoad}?from={lastEventId}&search={query}")
     Events getEventsSince(@Path String lastEventId, @Path String query, @Path int maxToLoad);
 
+    @Get("/events;max={maxToLoad}")
+    Events getEventsUserRole(@Path int maxToLoad);
+
     @Get("/events;max=" + Constants.MAX_EVENTS_PER_ENTITY + "?search=event_vm={vmName}")
     Events getVmEvents(@Path String vmName);
 

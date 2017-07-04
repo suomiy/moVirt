@@ -109,7 +109,7 @@ public class AccountPropertiesRW {
             case CERTIFICATE_LOCATION:
                 return CertLocation.fromString(read(property));
             case HAS_ADMIN_PERMISSIONS:
-                return read(property, false);
+                return read(property, true);
             case FIRST_LOGIN:
                 return read(property, true);
             case CERTIFICATE_CHAIN:

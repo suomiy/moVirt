@@ -76,6 +76,10 @@ public class Resources extends StringResources {
         return getString(R.string.login_error_unsupported_engine, current, supported);
     }
 
+    public String getUnsupportedUserRoleError(Version current, Version supported) {
+        return getString(R.string.login_error_unsupported_user_role, current, supported);
+    }
+
     public String getLoginAccountDeletedError() {
         return getString(R.string.login_error_no_account);
     }

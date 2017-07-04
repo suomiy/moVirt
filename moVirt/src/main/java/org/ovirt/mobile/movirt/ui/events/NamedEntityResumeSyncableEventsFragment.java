@@ -5,8 +5,11 @@ import org.androidannotations.annotations.Bean;
 import org.androidannotations.annotations.EFragment;
 import org.androidannotations.annotations.InstanceState;
 import org.ovirt.mobile.movirt.R;
+import org.ovirt.mobile.movirt.auth.account.AccountDeletedException;
 import org.ovirt.mobile.movirt.model.Event;
 import org.ovirt.mobile.movirt.model.base.OVirtAccountNamedEntity;
+import org.ovirt.mobile.movirt.provider.OVirtContract;
+import org.ovirt.mobile.movirt.provider.ProviderFacade;
 import org.ovirt.mobile.movirt.rest.ConnectivityHelper;
 import org.ovirt.mobile.movirt.rest.Response;
 import org.ovirt.mobile.movirt.ui.ProgressBarResponse;
@@ -29,9 +32,23 @@ public abstract class NamedEntityResumeSyncableEventsFragment extends EventsFrag
         super.onResume();
         if (!resumeSynced) {
             resumeSynced = true;
-            if (connectivityHelper.isNetworkAvailable()) {
-                onRefresh();
+            try {
+                if (connectivityHelper.isNetworkAvailable() && environmentStore.getAccountPropertiesManager(account).hasAdminPermissions()) {
+                    onRefresh();
+                }
+            } catch (AccountDeletedException ignore) {
             }
+        }
+    }
+
+    @Override
+    protected void appendQuery(ProviderFacade.QueryBuilder<Event> query) {
+        super.appendQuery(query);
+        try {
+            if (!environmentStore.getAccountPropertiesManager(account).hasAdminPermissions()) {
+                query.where(OVirtContract.Event.ID, "-1"); // prevent showing accidental events so the list is empty for unsupported user role
+            }
+        } catch (AccountDeletedException ignore) {
         }
     }
 
@@ -53,7 +70,15 @@ public abstract class NamedEntityResumeSyncableEventsFragment extends EventsFrag
     @Background
     @Override
     public void onRefresh() {
-        sync(new ProgressBarResponse<>(this));
+        try {
+            if (environmentStore.getAccountPropertiesManager(account).hasAdminPermissions()) {
+                sync(new ProgressBarResponse<>(this));
+            } else {
+                environmentStore.getMessageHelper(account).showToast("User entity events are not supported.");
+                hideProgressBar();
+            }
+        } catch (AccountDeletedException ignore) {
+        }
     }
 
     protected abstract void sync(Response<List<Event>> response);

@@ -3,6 +3,7 @@ package org.ovirt.mobile.movirt.ui.auth.connectionsettings;
 import org.androidannotations.annotations.Background;
 import org.androidannotations.annotations.Bean;
 import org.androidannotations.annotations.EBean;
+import org.androidannotations.annotations.UiThread;
 import org.ovirt.mobile.movirt.auth.AccountManagerHelper;
 import org.ovirt.mobile.movirt.auth.account.AccountDeletedException;
 import org.ovirt.mobile.movirt.auth.account.EnvironmentStore;
@@ -10,11 +11,12 @@ import org.ovirt.mobile.movirt.auth.account.data.ActiveSelection;
 import org.ovirt.mobile.movirt.auth.account.data.LoginStatus;
 import org.ovirt.mobile.movirt.auth.properties.AccountProperty;
 import org.ovirt.mobile.movirt.auth.properties.manager.AccountPropertiesManager;
+import org.ovirt.mobile.movirt.auth.properties.property.version.Version;
 import org.ovirt.mobile.movirt.auth.properties.property.version.support.VersionSupport;
 import org.ovirt.mobile.movirt.ui.auth.connectionsettings.exception.SmallMistakeException;
 import org.ovirt.mobile.movirt.ui.auth.connectionsettings.exception.WrongApiPathException;
 import org.ovirt.mobile.movirt.ui.auth.connectionsettings.exception.WrongArgumentException;
-import org.ovirt.mobile.movirt.ui.mvp.AccountDisposablesPresenter;
+import org.ovirt.mobile.movirt.ui.mvp.AccountListenersDisposablesPresenter;
 import org.ovirt.mobile.movirt.util.message.ErrorType;
 import org.ovirt.mobile.movirt.util.message.MessageHelper;
 import org.ovirt.mobile.movirt.util.preferences.CommonSharedPreferencesHelper;
@@ -33,7 +35,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 
 @EBean
-public class ConnectionSettingsPresenter extends AccountDisposablesPresenter<ConnectionSettingsPresenter, ConnectionSettingsContract.View>
+public class ConnectionSettingsPresenter extends AccountListenersDisposablesPresenter<ConnectionSettingsPresenter, ConnectionSettingsContract.View>
         implements ConnectionSettingsContract.Presenter {
 
     private MessageHelper messageHelper;
@@ -70,10 +72,22 @@ public class ConnectionSettingsPresenter extends AccountDisposablesPresenter<Con
                     .subscribeOn(Schedulers.computation())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe(loginStatus -> getView().showLoginInProgress(loginStatus.isInProgress())));
+
+            notifyAndRegisterListener(new AccountProperty.HasAdminPermissionsListener() {
+                @Override
+                public void onPropertyChange(Boolean hasAdminPermissions) {
+                    displayAdminPermissions(hasAdminPermissions);
+                }
+            });
         } catch (AccountDeletedException e) {
             finishSafe();
         }
         return this;
+    }
+
+    @UiThread(propagation = UiThread.Propagation.REUSE)
+    protected void displayAdminPermissions(boolean hasAdminPermissions) {
+        getView().displayAdminPermission(hasAdminPermissions);
     }
 
     @Override
@@ -185,6 +199,13 @@ public class ConnectionSettingsPresenter extends AccountDisposablesPresenter<Con
             propertiesManager.setFirstLogin(false);
         }
 
+        final Version apiVersion = propertiesManager.getApiVersion();
+        boolean unsupportedUserRole = !propertiesManager.hasAdminPermissions() && !VersionSupport.USER_ROLE.isSupported(apiVersion);
+
+        if (unsupportedUserRole) {
+            propertiesManager.setAdminPermissions(true); // default back to admin
+        }
+
         propertiesManager.setAuthToken(token);
         setLoginProgress(false);
 
@@ -201,10 +222,18 @@ public class ConnectionSettingsPresenter extends AccountDisposablesPresenter<Con
         rxStore.ACTIVE_SELECTION.onNext(new ActiveSelection(account));
         messageHelper.showToast(resources.getLoginSuccess());
 
-        if (VersionSupport.OVIRT_ENGINE.isSupported(propertiesManager.getApiVersion())) {
+        boolean engineSupported = VersionSupport.OVIRT_ENGINE.isSupported(apiVersion);
+
+        if (engineSupported && !unsupportedUserRole) {
             finishSafe();
         } else {
-            messageHelper.showError(ErrorType.USER, resources.getUnsupportedEngineError(propertiesManager.getApiVersion(), VersionSupport.OVIRT_ENGINE.getSupportedFrom()));
+            if (unsupportedUserRole) {
+                messageHelper.showError(ErrorType.USER, resources.getUnsupportedUserRoleError(apiVersion, VersionSupport.USER_ROLE.getSupportedFrom()));
+            }
+
+            if (!engineSupported) {
+                messageHelper.showError(ErrorType.USER, resources.getUnsupportedEngineError(apiVersion, VersionSupport.OVIRT_ENGINE.getSupportedFrom()));
+            }
         }
     }
 
@@ -213,8 +242,9 @@ public class ConnectionSettingsPresenter extends AccountDisposablesPresenter<Con
 
         boolean usernameChanged = propertiesManager.propertyDiffers(AccountProperty.USERNAME, loginInfo.username);
         boolean urlChanged = propertiesManager.propertyDiffers(AccountProperty.API_URL, loginInfo.endpoint);
+        boolean permissionChanged = propertiesManager.propertyDiffers(AccountProperty.HAS_ADMIN_PERMISSIONS, loginInfo.adminPrivileges);
 
-        if (urlChanged || usernameChanged) { // there can be more attempts to login so set it only the first time
+        if (urlChanged || usernameChanged || permissionChanged) { // there can be more attempts to login so set it only the first time
             propertiesManager.setFirstLogin(true);
         }
 
