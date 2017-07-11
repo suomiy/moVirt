@@ -54,18 +54,35 @@ dependencies {
     compile "com.github.akarnokd:rxjava2-interop:0.10.0"
 }
 
+def VERSION_MAJOR = 2
+def VERSION_MINOR = 0
+def VERSION_PATCH = 0
+def VERSION_BUILD = 1
+
 android {
     compileSdkVersion 25
     buildToolsVersion "25.0.3"
     defaultConfig {
+        applicationId "org.ovirt.mobile.movirt"
         minSdkVersion 16
         targetSdkVersion 25
         multiDexEnabled true
+
+        versionCode 10
+        versionName "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    apt {
+        arguments {
+            androidManifestFile variant.outputs[0].processResources.manifestFile
+            resourcePackageName android.defaultConfig.applicationId
+        }
+    }
+
     packagingOptions {
         exclude 'META-INF/LICENSE.txt'
         exclude 'META-INF/NOTICE.txt'
@@ -78,8 +95,70 @@ android {
         exclude 'META-INF/rxjava.properties'
     }
 
-    productFlavors {
+
+
+    buildTypes {
+        release {
+        }
+
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-D"
+        }
     }
+
+    productFlavors {
+        main {
+        }
+
+        alpha {
+            applicationIdSuffix ".alpha"
+        }
+
+        beta {
+            applicationIdSuffix ".beta"
+        }
+    }
+
+    applicationVariants.all { variant ->
+        def flavor = variant.productFlavors.get(0).name
+        def build = variant.buildType.name
+
+        def suffix = ""
+
+        if (flavor != "main") {
+            suffix = "." + flavor + "." + build
+        }
+
+        variant.resValue "string", "account_type", defaultConfig.applicationId + suffix
+        variant.resValue "string", "content_authority", defaultConfig.applicationId + suffix + ".provider"
+
+
+        def nameSuffix = ""
+        def specialSuffix = ""
+
+        if (flavor == "alpha") {
+            nameSuffix = nameSuffix + " Alpha"
+            specialSuffix = "a"
+        }
+
+        if (flavor == "beta") {
+            nameSuffix = nameSuffix + " Beta"
+            specialSuffix = "b"
+        }
+
+        if (build == "debug") {
+            nameSuffix = nameSuffix + " Debug"
+        }
+
+        if (flavor != "main") {
+            variant.mergedFlavor.versionName = "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}-${specialSuffix}${VERSION_BUILD}"
+        }
+
+        variant.resValue "string", "app_name", "moVirt" + nameSuffix
+        variant.resValue "string", "moVirt_version", "App Version " + variant.mergedFlavor.versionName
+    }
+
     // TODO: remove after fixing all android lint warnings
     lintOptions {
         abortOnError false
